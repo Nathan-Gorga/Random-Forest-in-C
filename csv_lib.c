@@ -1,7 +1,7 @@
 #include "csv_lib.h"
+#include "randomForest.h"
 
-
-void field_cb(void * s, size_t len, void * data){
+static void field_cb(void * s, size_t len, void * data){
     CSVData * csvdata = (CSVData *)data;
 
     if(csvdata->row < MAX_ROWS && csvdata->col < MAX_COLS){
@@ -16,7 +16,7 @@ void field_cb(void * s, size_t len, void * data){
     }
 }
 
-void row_cb(int c, void *data){
+static void row_cb(int c, void *data){
     CSVData *csvdata = (CSVData *)data;
 
     if(csvdata->row == 0){
@@ -31,7 +31,7 @@ void row_cb(int c, void *data){
 
 
 
-char ***load_csv(const char *filename, size_t * out_rows, size_t *out_cols){
+static char ***load_csv(const char *filename, size_t * out_rows, size_t *out_cols){
     
     struct csv_parser parser;
 
@@ -87,7 +87,7 @@ char ***load_csv(const char *filename, size_t * out_rows, size_t *out_cols){
 
 }
 
-double **convertToNumeric(char ***data, size_t rows, size_t cols){
+static double **convertToNumeric(char ***data, size_t rows, size_t cols){
     
     double ** numeric  = malloc(rows * sizeof(double *));
     // printf("cols : %d : %s\n",cols , data[1][4]);
@@ -106,13 +106,13 @@ double **convertToNumeric(char ***data, size_t rows, size_t cols){
                 char * species = data[i][j];
 
                 if(strcmp(species, "setosa") == 0){
-                    numeric[i - 1][j] = 0.0;//TODO : use enum
+                    numeric[i - 1][j] = (double)SETOSA;//TODO : use enum
                 } else if (strcmp(species, "versicolor") == 0){
-                    numeric[i - 1][j] = 1.0;
+                    numeric[i - 1][j] = (double)VERSICOLOR;
                 } else if (strcmp(species, "virginica") == 0){
-                    numeric[i - 1][j] = 2.0;
+                    numeric[i - 1][j] = (double)VIRIGINICA;
                 } else {
-                    numeric[i - 1][j] = -1.0;
+                    numeric[i - 1][j] = (double)UNKNOWN;
                 }
 
             }
@@ -154,34 +154,34 @@ double ** getNumericData(char * filename, size_t * rows, size_t * cols){
 
 
 
-int main(void){
-    
-    size_t rows, cols;
+// int main(void){
 
-    double ** data = getNumericData("./data/iris.csv", &rows, &cols);
+//     size_t rows, cols;
+
+//     double ** data = getNumericData("./data/iris.csv", &rows, &cols);
 
 
-    for(int i = 0; i < rows - 1; i++){
+//     for(int i = 0; i < rows - 1; i++){
         
 
-        for(int j = 0; j < cols ; j++){
+//         for(int j = 0; j < cols ; j++){
             
             
-            printf("%f\t", data[i][j]);
+//             printf("%f\t", data[i][j]);
     
-        }
+//         }
     
-        printf("\n");
-    }
+//         printf("\n");
+//     }
 
 
-    for(int i = 0; i < rows; i++){
+//     for(int i = 0; i < rows; i++){
     
     
-        free(data[i]);
-    }
+//         free(data[i]);
+//     }
 
-    free(data);
+//     free(data);
 
-    return 0;
-}
+//     return 0;
+// }

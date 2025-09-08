@@ -15,8 +15,6 @@ typedef struct {
     size_t max_cols;
 } CSVData;
 
-
-
-
+double ** getNumericData(char * filename, size_t * rows, size_t * cols);
 
 #endif

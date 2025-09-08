@@ -1,28 +1,7 @@
-#include "global.h"
+#include "randomForest.h"
 #include "csv_lib.h"
 
 
-
-enum NODE_TYPE{
-    ROOT,
-    BRANCH,
-    LEAF
-};
-
-typedef struct tree_node {
-
-    enum NODE_TYPE type;    
-
-    struct tree_node *left;
-    struct tree_node *right;
-
-    int feature_index;
-
-    double threshold;
-
-    int label;
-
-} tree_node;
 
 
 tree_node * createNode(const enum NODE_TYPE type, const int feature_index, const double threshold, const int class_label){
@@ -97,39 +76,35 @@ tree_node * buildTree(){
 
 int main(void) {
 
-    struct csv_parser parser;
+size_t rows, cols;
 
-    FILE * f;
+    double ** data = getNumericData("./data/iris.csv", &rows, &cols);
 
-    if ( csv_init(&parser, 0) != 0 ){
 
-        printf("ERROR : failure to initialize csv library\n");
+    for(int i = 0; i < rows - 1; i++){
         
-        return 1;
 
-    }
-
-    f = fopen("data.csv", "r");
-
-    if(!f) {
-
-        printf("ERROR : failure to open file\n");
-
-        csv_free(&parser);
-        
-        return 1;
-
+        for(int j = 0; j < cols ; j++){
+            
+            
+            printf("%f\t", data[i][j]);
+    
+        }
+    
+        printf("\n");
     }
 
 
+    for(int i = 0; i < rows; i++){
+    
+    
+        free(data[i]);
+    }
 
-
-
-    csv_free(&parser);
-
-    fclose(f);
+    free(data);
 
     return 0;
+
 }
 
 
