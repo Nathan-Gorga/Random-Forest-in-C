@@ -1,7 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <csv.h>
+#include "global.h"
+#include "csv_lib.h"
+
 
 
 enum NODE_TYPE{
@@ -14,8 +13,8 @@ typedef struct tree_node {
 
     enum NODE_TYPE type;    
 
-    tree_node *left;
-    tree_node *right;
+    struct tree_node *left;
+    struct tree_node *right;
 
     int feature_index;
 
@@ -93,6 +92,7 @@ tree_node * buildTree(){
 
     //and look at how it correlates with the label trying to detect
 
+    return NULL;
 }
 
 int main(void) {
@@ -101,11 +101,19 @@ int main(void) {
 
     FILE * f;
 
-    if ( csv_init(&parser, 0) != 0 ) return 1;
+    if ( csv_init(&parser, 0) != 0 ){
+
+        printf("ERROR : failure to initialize csv library\n");
+        
+        return 1;
+
+    }
 
     f = fopen("data.csv", "r");
 
     if(!f) {
+
+        printf("ERROR : failure to open file\n");
 
         csv_free(&parser);
         
