@@ -18,6 +18,12 @@ enum NODE_TYPE{
     LEAF
 };
 
+typedef struct {
+    float value;
+    int label;
+} sample;
+
+
 typedef struct tree_node {
 
     enum NODE_TYPE type;    
