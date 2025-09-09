@@ -327,6 +327,29 @@ enum SPECIES_TYPE predict(const tree_node *node, const double *sample) {
     }
 }
 
+enum SPECIES_TYPE predictForest(random_forest * f, const double * sample){
+
+    if(f == NULL) return NOT_IRIS;
+
+
+    int vote[NUM_SPECIES_TYPE] = {0};
+
+    for(int i = 0; i < f->size; i++){
+
+        // printf("Querying tree %d\n",i+1);
+
+        const int idx = predict(f->forest[i], sample);
+
+        if(idx != -1) vote[idx]++;
+
+    }  
+
+    return iarrmax(vote, NUM_SPECIES_TYPE);
+
+}
+
+
+
 void freeTree(tree_node * n){
 
     if(n == NULL) return;
@@ -381,13 +404,70 @@ double ** bagging(double **data, const size_t rows, const size_t cols, const siz
 
         memcpy(agg_data[i], data[random_row], cols * sizeof(double));
 
-        // for(int j = 0; j < cols; j++){
-        //     printf("%f\t", agg_data[i][j]);
-        // }printf("\n");
-
     }
 
     return agg_data;
+
+}
+
+
+random_forest * createForest(const size_t size, const size_t max_depth){
+
+    random_forest * forest = malloc(sizeof(random_forest));
+
+    if(!forest) return NULL;
+
+    forest->size = size;
+    forest->max_depth = max_depth;
+
+    forest->forest = malloc(size * sizeof(tree_node*));
+
+    return forest;
+}
+
+void freeForest(random_forest * f){
+    
+    for(int i = 0; i < f->size; i++){
+
+        freeTree(f->forest[i]);
+
+    }
+
+    free(f->forest);
+    free(f);
+}
+
+
+
+random_forest * buildForest(
+    double ** data, 
+    const size_t rows, 
+    const size_t cols, 
+    const size_t forest_size,
+    const size_t forest_depth,
+    const size_t bagging_size
+){
+
+    random_forest * f = createForest(forest_size, forest_depth);
+
+    if(!f) return NULL;
+
+    for(int i = 0; i < forest_size; i++){
+
+        double ** tree_data = bagging(data, rows, cols, bagging_size);
+
+        f->forest[i] = buildTree(tree_data, bagging_size, cols, 0);
+
+        for(int j = 0; j < bagging_size; j++){
+    
+            free(tree_data[j]);
+
+        }
+
+        free(tree_data);
+    }
+
+    return f;
 
 }
 
@@ -405,35 +485,35 @@ int main(void) { //PROTOCOL FOR BUILDING A DECISION TREE
     //extract data from CSV file
     double ** data = getNumericData("./data/iris.csv", &rows, &cols);
 
-    const int max_rows = 300;
+    const int training_rows = 145;
+    const int eval_rows = rows - training_rows;
 
-    double ** agg_data = bagging(data, rows, cols, max_rows);
-
-    const int training_rows = 250;
-    const int eval_rows = max_rows - training_rows;
-
-    tree_node * root = buildTree(agg_data, training_rows, cols, 0);
+    const int bagging_size = 100;
+    const int forest_size = 10;
 
 
-    if(!root) return 1;
+    random_forest * forest = buildForest(data, training_rows, cols, forest_size, MAX_DEPTH, bagging_size);
 
-    int score = 0;
+    int vote = 0;
 
-    for(int i = 0; i < eval_rows; i++){
+    for(int i = training_rows; i < rows; i++){
 
-        const double *test_sample = agg_data[training_rows + i];
+        const double * sample = data[i];
 
-        enum SPECIES_TYPE predicted = predict(root, test_sample);
+        const enum SPECIES_TYPE prediction = predictForest(forest, sample);
 
-        if(predicted == (int)test_sample[cols - 1]) score++;
-        // printf("Prediction for first sample: class = %d (true = %d)\n", predicted, (int)test_sample[cols - 1]);
+        printf("forest says : %d, answer is %d\n", (int)prediction, (int)sample[cols - 1]);
+
+        if((int)prediction == (int)sample[cols-1]) vote++;
 
     }
 
-    printf("PREDICTION SCORE : %.1f% (%d/%d)\n",((float)score/(float)eval_rows) * 100 ,score ,eval_rows);
+
+    printf("PREDICTION SCORE : %.1f% (%d/%d)\n",((float)vote/(float)eval_rows) * 100, vote, eval_rows);
 
 
-    freeTree(root);
+
+    freeForest(forest);
 
     for(int i = 0; i < rows; i++){
     
@@ -441,14 +521,6 @@ int main(void) { //PROTOCOL FOR BUILDING A DECISION TREE
 
     }
 
-    for(int i = 0; i < max_rows; i++){
-    
-        free(agg_data[i]);
-
-    }
-
-
-    free(agg_data);
     free(data);
 
 

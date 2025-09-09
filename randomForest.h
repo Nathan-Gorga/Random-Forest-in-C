@@ -18,6 +18,8 @@ enum NODE_TYPE{
     LEAF
 };
 
+
+
 typedef struct {
     double value;
     int label;
@@ -38,6 +40,17 @@ typedef struct tree_node {
     enum SPECIES_TYPE label;
 
 } tree_node;
+
+
+typedef struct{
+
+    size_t size;
+    size_t max_depth;
+
+    tree_node ** forest;
+
+} random_forest;
+
 
 
 #endif
