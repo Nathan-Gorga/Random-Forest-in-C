@@ -237,7 +237,7 @@ tree_node * buildTree(double ** data, const size_t rows, const size_t cols, cons
 
         threshold[i] = bestThreshold(feature_data, label_data, n_samples, n_classes, &gini[i]);
     
-        printf("for feature %d, threshold is %f with gini : %f\n", i, threshold[i], gini[i]);
+        // printf("for feature %d, threshold is %f with gini : %f\n", i, threshold[i], gini[i]);
     
     }
     
@@ -308,6 +308,23 @@ tree_node * buildTree(double ** data, const size_t rows, const size_t cols, cons
 
 }
 
+enum SPECIES_TYPE predict(const tree_node *node, const double *sample) {
+    if (node == NULL) {
+        // safety fallback
+        return NOT_IRIS;
+    }
+
+    if (node->type == LEAF) {
+        return node->label;
+    }
+
+    if (sample[node->feature_index] >= node->threshold) {
+        return predict(node->left, sample);
+    } else {
+        return predict(node->right, sample);
+    }
+}
+
 void freeTree(tree_node * n){
 
     if(n == NULL) return;
@@ -357,13 +374,23 @@ int main(void) { //PROTOCOL FOR BUILDING A DECISION TREE
     //extract data from CSV file
     double ** data = getNumericData("./data/iris.csv", &rows, &cols);
 
-    tree_node * root = buildTree(data, rows, cols, 0);
+    const int training_rows = 130;
+    const int eval_rows = rows - training_rows;
+
+    tree_node * root = buildTree(data, training_rows, cols, 0);
 
     if(!root) return 1;
 
-    // printNode(root);
+    for(int i = 0; i < eval_rows; i++){
 
-    printTree(root, 0);
+        const double *test_sample = data[training_rows + i];
+
+        enum SPECIES_TYPE predicted = predict(root, test_sample);
+        
+        printf("Prediction for first sample: class = %d (true = %d)\n", predicted, (int)test_sample[cols - 1]);
+
+    }
+
 
     freeTree(root);
 
