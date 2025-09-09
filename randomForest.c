@@ -3,8 +3,8 @@
 
 
 int cmpfunc(const void * a, const void * b){
-    const float fa = ((sample *)a)->value;
-    const float fb = ((sample *)b)->value;
+    const double fa = ((sample *)a)->value;
+    const double fb = ((sample *)b)->value;
     
     if(fa < fb) return -1;
     else if (fa > fb) return 1;
@@ -12,11 +12,11 @@ int cmpfunc(const void * a, const void * b){
 
 }
 
-float giniImpurity(int * class_counts, const int total, const int n_classes){
+double giniImpurity(int * class_counts, const int total, const int n_classes){
     if(total == 0) return 0.0f;
-    float gini = 1.0f;
+    double gini = 1.0f;
     for(int i = 0; i < n_classes; i++){
-        float p = (float)class_counts[i]/total;
+        double p = (double)class_counts[i]/total;
         gini -= p * p;
     }
 
@@ -25,7 +25,7 @@ float giniImpurity(int * class_counts, const int total, const int n_classes){
 }
 
 
-float bestThreshold(double *x, int *y, const int n_samples, const int n_classes, float * best_gini){
+double bestThreshold(double *x, int *y, const int n_samples, const int n_classes, double * best_gini){
     sample * samples = malloc(n_samples * sizeof(sample));
     for(int i = 0; i < n_samples; i++){
         samples[i].value = x[i];
@@ -45,7 +45,7 @@ float bestThreshold(double *x, int *y, const int n_samples, const int n_classes,
     int left_total = 0;
     int right_total = n_samples;
 
-    float best_tresh = samples[0].value;
+    double best_tresh = samples[0].value;
     *best_gini = FLT_MAX;
 
     for(int i = 0; i < n_samples - 1; i++){
@@ -59,11 +59,11 @@ float bestThreshold(double *x, int *y, const int n_samples, const int n_classes,
 
 
         if(samples[i].label != samples[i + 1].label){
-            float threshold = (samples[i].value + samples[i+1].value) / 2.0f;
+            double threshold = (samples[i].value + samples[i+1].value) / 2.0f;
 
-            float gini_left = giniImpurity(left_counts, left_total, n_classes);
-            float gini_right = giniImpurity(right_counts, right_total, n_classes);
-            float weighted_gini = (left_total * gini_left + right_total * gini_right) / n_samples;
+            double gini_left = giniImpurity(left_counts, left_total, n_classes);
+            double gini_right = giniImpurity(right_counts, right_total, n_classes);
+            double weighted_gini = (left_total * gini_left + right_total * gini_right) / n_samples;
 
             if(weighted_gini < *best_gini){
                 *best_gini = weighted_gini;
@@ -81,6 +81,20 @@ float bestThreshold(double *x, int *y, const int n_samples, const int n_classes,
 
 }
 
+
+int arrmin(double arr[], const int size){
+    double min = arr[0];
+    int idx = 0;
+
+    for(int i = 1; i < size; i++){
+        if(arr[i] < min){
+            min = arr[i];
+            idx = i;
+        }
+    }
+
+    return idx;
+}
 
 
 
@@ -104,54 +118,125 @@ tree_node * createNode(const enum NODE_TYPE type, const int feature_index, const
     return node;
 }
 
-tree_node * buildTree(double ** data, const size_t rows, const size_t cols){
 
-    //we need to figure out the distinction at the root
-
-    //make a super simple tree with only one question
-
-    //do this for all features
-
-    //and look at how it correlates with the label trying to detect
-
-    return NULL;
+void printNode(tree_node * n){
+    printf("type : %d\n", n->type);
+    printf("left : %p\n", n->left);
+    printf("right : %p\n", n->right);
+    printf("feature idx : %d\n", n->feature_index);
+    printf("threshold : %f\n", n->threshold);
+    printf("label : %d\n", n->label);
 }
 
-int main(void) {
 
-    // size_t rows, cols;
 
-    // double ** data = getNumericData("./data/iris.csv", &rows, &cols);
+tree_node * buildTree(double ** data, const size_t rows, const size_t cols){
 
-    // for(int i = 0; i < rows - 1; i++){
+    tree_node * root = NULL;
 
-    //     for(int j = 0; j < cols ; j++){
+    //separate data by column features
+    double ** column_data = malloc((cols-1) * sizeof(double *));
+
+    if(!column_data) return NULL;
+
+    int  * label_data = malloc(rows * sizeof(int));
+
+    if(!label_data) goto column;
+
+    for(int i = 0; i < cols - 1 ; i++){
+
+        column_data[i] = malloc(rows * sizeof(double));
+
+        if(!column_data[i]){
+            for(int j = 0; j < i; j++) free(column_data[j]);
             
-    //         printf("%f\t", data[i][j]);
+            goto label_data;
+        }
+
+
+        for(int j = 0; j < rows; j++){
+            column_data[i][j] = data[j][i];
+        }
+    }
+
+    for(int i = 0; i < rows; i++){
+        label_data[i] = (int)data[i][cols-1];
+    }
+
+
+    //calculate the best gini index by feature
+    const int n_samples = rows, n_classes = NUM_SPECIES_TYPE;
+
+    double * best_gini = malloc((cols-1) * sizeof(double));
+
+    if(!best_gini) goto col;
+
+    double * threshold = malloc((cols-1) * sizeof(double));
+
+    if(!threshold) goto gini;
+  
+
+    for(int i = 0; i < cols - 1; i++){
+        threshold[i] = bestThreshold(column_data[i], label_data, n_samples, n_classes, &best_gini[i]);
+        printf("for feature %d, threshold is %f with gini : %f\n", i, threshold[i], best_gini[i]);
+    }
+
+    //create root node using this feature with threshold
+
+    const int best_feature = arrmin(best_gini, cols - 1);
+    const double best_threshold = threshold[best_feature];
+
+    root = createNode(ROOT, best_feature, best_threshold, -1); 
+
+    free(threshold);
+
+
+gini:
+
+    free(best_gini);
+
+col:
+
+    for(int i = 0; i < cols - 1; i++){
     
-    //     }
+        free(column_data[i]);
+
+    }
+
+label_data:
+
+    free(label_data);
+
+column:
+
+    free(column_data);
+
+    return root;
+}
+
+int main(void) { //PROTOCOL FOR BUILDING A DECISION TREE
+
+    size_t rows, cols;
     
-    //     printf("\n");
-    // }
+    //extract data from CSV file
+    double ** data = getNumericData("./data/iris.csv", &rows, &cols);
 
+    tree_node * root = buildTree(data, rows, cols);
 
-    // for(int i = 0; i < rows; i++){
+    if(!root) return 1;
+
+    printNode(root);
+
+    free(root);
+
+    for(int i = 0; i < rows; i++){
     
-    
-    //     free(data[i]);
-    // }
+        free(data[i]);
 
-    // free(data);
+    }
 
-    double x[] = {1.0, 1.2, 4.7, 4.5, 5.0};
-    int y[] = {0, 0, 1 ,1 ,2};
-    int n_samples = 5;
-    int n_classes = 3;
+    free(data);
 
-    float best_gini;
-    float threshold = bestThreshold(x, y, n_samples, n_classes, &best_gini);
-
-    printf("Best threshold : %f, gini : %f\n", threshold, best_gini);
 
     return 0;
 

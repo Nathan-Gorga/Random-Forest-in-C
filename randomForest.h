@@ -19,7 +19,7 @@ enum NODE_TYPE{
 };
 
 typedef struct {
-    float value;
+    double value;
     int label;
 } sample;
 
