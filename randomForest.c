@@ -159,16 +159,18 @@ void printNode(tree_node * n){
 }
 
 #define MIN_SAMPLES 5
-#define MAX_DEPTH 6
+#define MAX_DEPTH 7
 
 
 bool sameClass(double ** data, const size_t rows, const size_t cols){
+
+    // printf("rows : %d, cols : %d\n", rows, cols ); fflush(stdout);
     for(int i = 0; i < rows - 1; i++){
         
         const double label1 = data[i][cols-1];
         
         const double label2 = data[i + 1][cols-1];
-        
+        // printf("%f != %f\n", label1, label2);
         if(label1 != label2) return false;
     }
 
@@ -180,7 +182,7 @@ enum SPECIES_TYPE majorityClass(double ** data,const size_t rows,const size_t co
     
     int count[NUM_SPECIES_TYPE] = {0};
 
-    // printf("In this dataset, there are %zu rows\n", rows);
+    // printf("In this dataset, there are %zu rows\n", rows); fflush(stdout);
 
     for(int i = 0; i < rows; i++){
     
@@ -204,8 +206,7 @@ tree_node * buildTree(double ** data, const size_t rows, const size_t cols, cons
     //1. check stopping conditions
     if(rows <= MIN_SAMPLES || depth >= MAX_DEPTH || sameClass(data, rows, cols)){
 
-        // printf("Creating a leaf node\n");
-
+        // printf("creating a leaf node\n");
         const enum SPECIES_TYPE majority = majorityClass(data, rows, cols);
 
 
@@ -292,6 +293,7 @@ tree_node * buildTree(double ** data, const size_t rows, const size_t cols, cons
     // printf("Going into right branch\n");
     node->right = buildTree(right_data, right_rows, cols, depth + 1);
 
+
     for(int i = 0; i < left_rows; i++){
         free(left_data[i]);
     }
@@ -366,30 +368,69 @@ void printTree(const tree_node *node, int depth) {
 }
 
 
+double ** bagging(double **data, const size_t rows, const size_t cols, const size_t iterations){
+
+    double ** agg_data = malloc(iterations * sizeof(double*));
+
+    for(int i = 0; i < iterations; i++){
+
+        const int random_row = rand() % rows;
+
+
+        agg_data[i] = malloc(cols * sizeof(double));
+
+        memcpy(agg_data[i], data[random_row], cols * sizeof(double));
+
+        // for(int j = 0; j < cols; j++){
+        //     printf("%f\t", agg_data[i][j]);
+        // }printf("\n");
+
+    }
+
+    return agg_data;
+
+}
+
+
+
+
+
 
 int main(void) { //PROTOCOL FOR BUILDING A DECISION TREE
+
+    srand(time(NULL));
 
     size_t rows, cols;
     
     //extract data from CSV file
     double ** data = getNumericData("./data/iris.csv", &rows, &cols);
 
-    const int training_rows = 130;
-    const int eval_rows = rows - training_rows;
+    const int max_rows = 300;
 
-    tree_node * root = buildTree(data, training_rows, cols, 0);
+    double ** agg_data = bagging(data, rows, cols, max_rows);
+
+    const int training_rows = 250;
+    const int eval_rows = max_rows - training_rows;
+
+    tree_node * root = buildTree(agg_data, training_rows, cols, 0);
+
 
     if(!root) return 1;
 
+    int score = 0;
+
     for(int i = 0; i < eval_rows; i++){
 
-        const double *test_sample = data[training_rows + i];
+        const double *test_sample = agg_data[training_rows + i];
 
         enum SPECIES_TYPE predicted = predict(root, test_sample);
-        
-        printf("Prediction for first sample: class = %d (true = %d)\n", predicted, (int)test_sample[cols - 1]);
+
+        if(predicted == (int)test_sample[cols - 1]) score++;
+        // printf("Prediction for first sample: class = %d (true = %d)\n", predicted, (int)test_sample[cols - 1]);
 
     }
+
+    printf("PREDICTION SCORE : %.1f% (%d/%d)\n",((float)score/(float)eval_rows) * 100 ,score ,eval_rows);
 
 
     freeTree(root);
@@ -400,6 +441,14 @@ int main(void) { //PROTOCOL FOR BUILDING A DECISION TREE
 
     }
 
+    for(int i = 0; i < max_rows; i++){
+    
+        free(agg_data[i]);
+
+    }
+
+
+    free(agg_data);
     free(data);
 
 
