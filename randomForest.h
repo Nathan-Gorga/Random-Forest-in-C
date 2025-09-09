@@ -5,7 +5,7 @@
 
 
 enum SPECIES_TYPE{
-    UNKNOWN = -1,
+    NOT_IRIS = -1,
     SETOSA,
     VERSICOLOR,
     VIRIGINICA,
@@ -35,7 +35,7 @@ typedef struct tree_node {
 
     double threshold;
 
-    int label;
+    enum SPECIES_TYPE label;
 
 } tree_node;
 

@@ -1,3 +1,4 @@
+
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
@@ -7,6 +8,7 @@
 #include <string.h>
 #include <float.h>
 #include <limits.h>
+#include <stdbool.h>
 
 
 

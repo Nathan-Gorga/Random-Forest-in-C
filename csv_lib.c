@@ -112,7 +112,7 @@ static double **convertToNumeric(char ***data, size_t rows, size_t cols){
                 } else if (strcmp(species, "virginica") == 0){
                     numeric[i - 1][j] = (double)VIRIGINICA;
                 } else {
-                    numeric[i - 1][j] = (double)UNKNOWN;
+                    numeric[i - 1][j] = (double)NOT_IRIS;
                 }
 
             }
